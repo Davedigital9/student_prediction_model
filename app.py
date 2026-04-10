@@ -7,7 +7,7 @@ model_early = joblib.load("early_model.pkl")
 model_mid = joblib.load("mid_model.pkl")
 model_late = joblib.load("late_model.pkl")
 
-st.title("🎓 Student Performance Predictor")
+st.title("Student Performance Predictor")
 
 st.write("Predict your likelihood of passing based on your academic progress.")
 
