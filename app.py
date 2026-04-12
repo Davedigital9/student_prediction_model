@@ -162,8 +162,8 @@ if st.button("Predict Outcome"):
         mid_pred = model_mid.predict(mid_features)[0]
         mid_prob = model_mid.predict_proba(mid_features)[0][1]
         
-        results["Mid Stage"] = mid_pred
-        probabilities["Mid Stage"] = mid_prob
+        st.session_state.results["Mid Stage"] = mid_pred
+        st.session_state.probabilities["Mid Stage"] = mid_prob
 
     # Late prediction
     if G2 > 0:
@@ -171,8 +171,8 @@ if st.button("Predict Outcome"):
         late_pred = model_late.predict(late_features)[0]
         late_prob = model_late.predict_proba(late_features)[0][1]
         
-        results["Late Stage"] = late_pred
-        probabilities["Late Stage"] = late_prob
+        st.session_state.results["Late Stage"] = late_pred
+        st.session_state.probabilities["Late Stage"] = late_prob
 
     # ---------------------------
     # Display Results
