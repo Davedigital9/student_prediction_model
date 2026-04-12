@@ -209,7 +209,7 @@ if st.button("Predict Outcome"):
     if latest_prediction == 1:
         st.success(f"✅ You are likely to PASS ({round(latest_prob*100,2)}% confidence)")
     else:
-        st.error("⚠️ You are at risk of FAILING ({round((1-latest_prob)*100,2)}% risk)")
+        st.error(f"⚠️ You are at risk of FAILING ({round((1-latest_prob)*100,2)}% risk)")
 
         st.subheader("💡 Suggestions:")
         st.write("- Increase study time")
