@@ -107,7 +107,7 @@ if stage != "Early (No Assessments)":
         scores.append(score)
         weights.append(weight)
 
-    current_grade, total_weight = calculate_weighted_grade(scores, weights)
+    current_grade, weighted_sum = calculate_weighted_grade(scores, weights)
 
     st.success(f"📈 Current Weighted Grade: {round(current_grade, 2)}%")
 
