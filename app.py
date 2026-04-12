@@ -180,8 +180,8 @@ if st.button("Predict Outcome"):
     st.subheader("📊 Prediction Progression")
 
     for stage_name in st.session_state.results:
-        pred = results[stage_name]
-        prob = probabilities[stage_name]
+        pred = st.session_state.results[stage_name]
+        prob = st.session_state.probabilities[stage_name]
 
         if pred ==1:
             st.success(f"{stage_name}: PASS ✅ ({round(prob*100, 2)}% confidence)")
