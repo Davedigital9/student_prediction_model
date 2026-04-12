@@ -200,9 +200,9 @@ if st.button("Predict Outcome"):
     # ---------------------------
     # Final Result (Latest Stage)
     # ---------------------------
-    latest_stage = list(results.keys())[-1]
-    latest_prediction = results[latest_stage]
-    latest_prob = probabilities[latest_stage]    
+    latest_stage = list(st.session_state.results.keys())[-1]
+    latest_prediction = st.session_state.results[latest_stage]
+    latest_prob = st.session_state.probabilities[latest_stage]  
 
     st.subheader("🎯 Final Prediction")
 
