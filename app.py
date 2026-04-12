@@ -81,14 +81,8 @@ internet = 1 if internet == "Yes" else 0
 # Weighted Grade Function
 # ---------------------------
 def calculate_weighted_grade(scores, weights):
-    total_weight = sum(weights)
-    weighted_sum = sum([s * w for s, w in zip(scores, weights)])
-    
-    if total_weight == 0:
-        return 0, 0
-    
-    current_grade = weighted_sum / total_weight
-    return current_grade, total_weight
+    weighted_sum = sum([s * (w/100) for s, w in zip(scores, weights)])
+    return weighted_sum
 
 # ---------------------------
 # Assessment Input
