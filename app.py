@@ -10,7 +10,23 @@ model_late = joblib.load("late_model.pkl")
 st.title("Student Performance Predictor")
 
 st.write("Predict your likelihood of passing based on your academic progress.")
+st.markdown("""
+### 📘 About This Tool
+This system predicts whether a student is likely to pass or fail a module based on academic behaviour, engagement, and performance over time.
 
+The model uses machine learning trained on real student data to identify patterns linked to academic success. It considers factors such as study time, attendance, past academic performance, and support systems.
+
+A key feature of this system is its ability to adapt to different stages of the semester. Students can input their assessment scores along with their respective weightings, allowing the system to calculate a running weighted grade. This ensures accurate predictions even when modules have different assessment structures.
+
+### 🎯 How This Helps You
+
+- Identify risk of failing early  
+- Track your academic progress over time  
+- Understand how your performance impacts outcomes  
+- Take action before it’s too late  
+
+This tool is designed to support better decision-making and improve student success.
+""")
 # ---------------------------
 # Stage Selection
 # ---------------------------
@@ -22,13 +38,27 @@ stage = st.selectbox(
 # ---------------------------
 # Common Inputs
 # ---------------------------
-studytime = st.slider("Study Time (1-4)", 1, 4)
-failures = st.slider("Past Failures", 0, 5)
-absences = st.number_input("Absences", 0, 100)
+studytime = st.slider(
+    "Study Time per Week (1 = <2hrs, 2 = 2–5hrs, 3 = 5–10hrs, 4 = >10hrs)", 
+    1, 4
+)
 
-schoolsup = st.selectbox("School Support", ["No", "Yes"])
-famsup = st.selectbox("Family Support", ["No", "Yes"])
-internet = st.selectbox("Internet Access", ["No", "Yes"])
+failures = st.slider(
+    "Number of Past Academic Failures (historical, not current module)", 
+    0, 5
+)
+
+absences = st.number_input(
+    "Number of Classes Missed This Semester (Max 13)", 
+    0, 13
+)
+
+schoolsup = st.selectbox("Do you receive academic support from your institution?", ["No", "Yes"])
+famsup = st.selectbox("Do you receive family support for your studies?", ["No", "Yes"])
+internet = st.selectbox(
+    "Do you have reliable internet access outside the University?", 
+    ["No", "Yes"]
+)
 
 # Convert categorical
 schoolsup = 1 if schoolsup == "Yes" else 0
