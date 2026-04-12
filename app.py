@@ -145,16 +145,16 @@ if stage != "Early (No Assessments)":
 # ---------------------------
 if st.button("Predict Outcome"):
 
-    results = {}
-    probabilities = {}
+    st.session_state.results = {}
+    st.session_state.probabilities = {}
 
     # Early prediction
     early_features = np.array([[studytime, failures, absences, schoolsup, famsup, internet]])
     early_pred = model_early.predict(early_features)[0]
     early_prob = model_early.predict_proba(early_features)[0][1]
     
-    results["Early Stage"] = early_pred
-    probabilities["Early Stage"] = early_prob
+    st.session_state.results["Early Stage"] = early_pred
+    st.session_state.probabilities["Early Stage"] = early_prob
 
     # Mid prediction
     if G1 > 0:
@@ -179,7 +179,7 @@ if st.button("Predict Outcome"):
     # ---------------------------
     st.subheader("📊 Prediction Progression")
 
-    for stage_name in results:
+    for stage_name in st.session_state.results:
         pred = results[stage_name]
         prob = probabilities[stage_name]
 
@@ -219,18 +219,20 @@ if st.button("Predict Outcome"):
 # ---------------------------
 # Visual Dashboard
 # ---------------------------
-st.subheader("📈 Performance Analytics")
-st.write("### Grade & Prediction Trend")
+if "results" in st.session_state:
 
-stage_labels = list(results.keys())
-pass_prob = [probabilities[s] for s in stage_labels]
+    st.subheader("📈 Performance Analytics")
+    st.write("### Grade & Prediction Trend")
 
-fig, ax = plt.subplot()
-ax.plot(stage_labels, pass_probs, marker='o')
-ax.set_title("Prediction Confidence over Time")
-ax.set_xlabel("Stage")
-ax.set_ylabel("Probability of Pass")
+    stage_labels = list(st.session_state.results.keys())
+    pass_probs = [st.session_state.probabilities[s] for s in stage_labels]
 
-st.pyplot(fig)
+    import matplotlib.pyplot as plt
 
+    fig, ax = plt.subplots()
+    ax.plot(stage_labels, pass_probs, marker='o')
+    ax.set_title("Prediction Confidence Over Time")
+    ax.set_xlabel("Stage")
+    ax.set_ylabel("Probability of Passing")
 
+    st.pyplot(fig)
