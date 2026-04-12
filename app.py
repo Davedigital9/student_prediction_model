@@ -191,7 +191,7 @@ if st.button("Predict Outcome"):
     # ---------------------------
     # Progression Insight
     # ---------------------------
-    if "Early Stage" in results and "Late Stage" in results:
+    if "Early Stage" in st.session_state.results and "Late Stage" in st.session_state.results:
         if results["Early Stage"] == 0 and results["Late Stage"] == 1:
             st.success("🎉 Improvement detected! You moved from risk to passing.")
         elif results["Early Stage"] == 1 and results["Late Stage"] == 0:
