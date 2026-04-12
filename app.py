@@ -222,7 +222,7 @@ if st.button("Predict Outcome"):
 st.subheader("📈 Performance Analytics")
 st.write("### Grade & Prediction Trend")
 
-stage_labels = list(results.key())
+stage_labels = list(results.keys())
 pass_prob = [probabilities[s] for s in stage_labels]
 
 fig, ax = plt.subplot()
