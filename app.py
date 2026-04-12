@@ -145,34 +145,47 @@ if stage != "Early (No Assessments)":
 if st.button("Predict Outcome"):
 
     results = {}
+    probabilities = {}
 
     # Early prediction
     early_features = np.array([[studytime, failures, absences, schoolsup, famsup, internet]])
     early_pred = model_early.predict(early_features)[0]
+    early_prob = model_early.predict_proba(early_features)[0][1]
+    
     results["Early Stage"] = early_pred
+    probabilities["Early Stage"] = early_prob
 
     # Mid prediction
     if G1 > 0:
         mid_features = np.array([[studytime, failures, absences, schoolsup, famsup, internet, G1]])
         mid_pred = model_mid.predict(mid_features)[0]
+        mid_prob = model_mid.predict_proba(mid_features)[0][1]
+        
         results["Mid Stage"] = mid_pred
+        probabilities["Mid Stage"] = mid_prob
 
     # Late prediction
     if G2 > 0:
         late_features = np.array([[studytime, failures, absences, schoolsup, famsup, internet, G1, G2]])
         late_pred = model_late.predict(late_features)[0]
+        late_prob = model_late.predict_proba(late_features)[0][1]
+        
         results["Late Stage"] = late_pred
+        probabilities["Late Stage"] = late_prob
 
     # ---------------------------
     # Display Results
     # ---------------------------
     st.subheader("📊 Prediction Progression")
 
-    for stage_name, pred in results.items():
-        if pred == 1:
-            st.success(f"{stage_name}: PASS ✅")
+    for stage_name in results:
+        pred = results[stage_name]
+        prob = probabilities[stage_name]
+
+        if pred ==1:
+            st.success(f"{stage_name}: PASS ✅ ({round(prob*100, 2)}% confidence)")
         else:
-            st.error(f"{stage_name}: FAIL ⚠️")
+            st.error(f"{stage_name}: FAIL ⚠️ ({round((1-prob)*100, 2)}% risk)")
 
     # ---------------------------
     # Progression Insight
