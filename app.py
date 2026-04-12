@@ -2,6 +2,7 @@ import streamlit as st
 import joblib
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 # ---------------------------
 # Load models
@@ -201,6 +202,7 @@ if st.button("Predict Outcome"):
     # ---------------------------
     latest_stage = list(results.keys())[-1]
     latest_prediction = results[latest_stage]
+    
 
     st.subheader("🎯 Final Prediction")
 
@@ -213,3 +215,22 @@ if st.button("Predict Outcome"):
         st.write("- Increase study time")
         st.write("- Reduce absences")
         st.write("- Seek academic support")
+
+# ---------------------------
+# Visual Dashboard
+# ---------------------------
+st.subheader("📈 Performance Analytics")
+st.write("### Grade & Prediction Trend")
+
+stage_labels = list(results.key())
+pass_prob = [probabilities[s] for s in stage_labels]
+
+fig, ax = plt.subplot()
+ax.plot(stage_labels, pass_probs, marker='o')
+ax.set_title("Prediction Confidence over Time")
+ax.set_xlabel("Stage")
+ax.set_ylabel("Probability of Pass")
+
+st.pyplot(fig)
+
+
