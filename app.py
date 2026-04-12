@@ -202,14 +202,14 @@ if st.button("Predict Outcome"):
     # ---------------------------
     latest_stage = list(results.keys())[-1]
     latest_prediction = results[latest_stage]
-    
+    latest_prob = probabilities[latest_stage]    
 
     st.subheader("🎯 Final Prediction")
 
     if latest_prediction == 1:
-        st.success("✅ You are likely to PASS!")
+        st.success(f"✅ You are likely to PASS ({round(latest_prob*100,2)}% confidence)")
     else:
-        st.error("⚠️ You are at risk of FAILING.")
+        st.error("⚠️ You are at risk of FAILING ({round((1-latest_prob)*100,2)}% risk)")
 
         st.subheader("💡 Suggestions:")
         st.write("- Increase study time")
