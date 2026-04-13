@@ -5,6 +5,18 @@ import os
 import matplotlib.pyplot as plt
 
 # ---------------------------
+# Session State Initialization
+# ---------------------------
+if "early_data" not in st.session_state:
+    st.session_state.early_data = {"scores": [], "weights": []}
+
+if "mid_data" not in st.session_state:
+    st.session_state.mid_data = {"scores": [], "weights": []}
+
+if "late_data" not in st.session_state:
+    st.session_state.late_data = {"scores": [], "weights": []}
+
+# ---------------------------
 # Load models
 # ---------------------------
 if not os.path.exists("early_model.pkl"):
@@ -48,6 +60,16 @@ stage = st.selectbox(
 )
 
 # ---------------------------
+# Select Stage Data Store
+# ---------------------------
+if stage == "Early (No Assessments)":
+    current_data = st.session_state.early_data
+elif stage == "Mid (Some Assessments)":
+    current_data = st.session_state.mid_data
+else:
+    current_data = st.session_state.late_data
+
+# ---------------------------
 # Common Inputs
 # ---------------------------
 studytime = st.slider(
@@ -81,35 +103,67 @@ internet = 1 if internet == "Yes" else 0
 # Weighted Grade Function
 # ---------------------------
 def calculate_weighted_grade(scores, weights):
-    weighted_sum = sum([s * (w/100) for s, w in zip(scores, weights)])
-    return weighted_sum
+    return sum([s * (w / 100) for s, w in zip(scores, weights)])
 
 # ---------------------------
 # Assessment Input
 # ---------------------------
 G1 = 0
 G2 = 0
-current_grade = 0
-total_weight = 0
 
 if stage != "Early (No Assessments)":
     st.subheader("📊 Enter Assessment Details")
 
-    num_assessments = st.number_input("Number of assessments completed", 1, 10)
+    num_assessments = st.number_input(
+        "Number of assessments completed", 
+        1, 11, 
+        value=len(current_data["scores"]) if current_data["scores"] else 1
+    )
 
     scores = []
     weights = []
 
     for i in range(int(num_assessments)):
-        score = st.number_input(f"Score for Assessment {i+1}", 0.0, 100.0, key=f"s{i}")
-        weight = st.number_input(f"Weight (%) for Assessment {i+1}", 0.0, 100.0, key=f"w{i}")
+        score = st.number_input(
+            f"Score for Assessment {i+1}", 
+            0.0, 100.0, 
+            value=current_data["scores"][i] if i < len(current_data["scores"]) else 0.0,
+            key=f"{stage}_s{i}"
+        )
+
+        weight = st.number_input(
+            f"Weight (%) for Assessment {i+1}", 
+            0.0, 100.0, 
+            value=current_data["weights"][i] if i < len(current_data["weights"]) else 0.0,
+            key=f"{stage}_w{i}"
+        )
 
         scores.append(score)
         weights.append(weight)
 
+    # Save back to session
+    current_data["scores"] = scores
+    current_data["weights"] = weights
+
+    # Calculate grade
     current_grade = calculate_weighted_grade(scores, weights)
 
     st.success(f"📈 Current Weighted Grade: {round(current_grade, 2)}%")
+
+    st.info(f"📌 {len(scores)} assessments recorded for this stage")
+
+    # Assign G1 and G2 properly
+    if stage == "Mid (Some Assessments)":
+        G1 = current_grade
+
+    elif stage == "Late (Most Assessments)":
+        G2 = current_grade
+
+        # Pull G1 from mid stage automatically
+        G1 = calculate_weighted_grade(
+            st.session_state.mid_data["scores"],
+            st.session_state.mid_data["weights"]
+        )
 
     # ---------------------------
     # Pass Requirement Calculator
