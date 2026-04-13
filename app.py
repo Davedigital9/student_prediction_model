@@ -209,6 +209,16 @@ if stage != "Early (No Assessments)":
     current_grade = calculate_weighted_grade(scores, weights)
     st.success(f"Current Weighted Grade: {current_grade:.2f}%")
 
+    #Implementing a hybrid decision logic to stop conflicting prediction results
+    def rule_based_override(weighted_grade, ml_pred, pass_label):
+        if weighted_grade >= 50:
+            return pass_label, "Rule-based PASS (grade ≥ 50%)"
+        elif weighted_grade < 40:
+            return 1 - pass_label, "Rule-based FAIL (grade < 40%)"
+        else:
+            return ml_pred, "ML-based decision (40–50% zone)"
+
+
     # ---------------------------
     # PASS REQUIREMENT
     # ---------------------------
@@ -253,8 +263,11 @@ if st.button("Predict Outcome"):
     early_prob = model_early.predict_proba(early_features)[0]
 
     early_pred = np.argmax(early_prob)
-    st.session_state.results["Early"] = early_pred
+    #applied the new hybrid decision system
+    early_final, early_reason = rule_based_override(current_grade, early_pred, early_pass_label)
+    st.session_state.results["Early"] = early_final
     st.session_state.probabilities["Early"] = early_prob[early_pass_label]
+    st.session_state[f"reason_Early"] = early_reason
 
     # ---------------- Mid Stage ----------------
     #Check for actual data instead of G1>0
@@ -263,9 +276,11 @@ if st.button("Predict Outcome"):
 
         mid_prob = model_mid.predict_proba(mid_features)[0]
         mid_pred = np.argmax(mid_prob)
-
-        st.session_state.results["Mid"] = mid_pred
+        #applied the new hybrid decision system
+        mid_final, mid_reason = rule_based_override(G1, mid_pred, mid_pass_label)
+        st.session_state.results["Mid"] = mid_final
         st.session_state.probabilities["Mid"] = mid_prob[mid_pass_label]
+        st.session_state[f"reason_Mid"] = mid_reason
 
     # ---------------- Late Stage ----------------
     #Check for actual data instead of G2>0
@@ -274,9 +289,11 @@ if st.button("Predict Outcome"):
 
         late_prob = model_late.predict_proba(late_features)[0]
         late_pred = np.argmax(late_prob)
-
-        st.session_state.results["Late"] = late_pred
+        #applied the new hybrid decision system
+        late_final, late_reason = rule_based_override(G2, late_pred, late_pass_label)
+        st.session_state.results["Late"] = late_final
         st.session_state.probabilities["Late"] = late_prob[late_pass_label]
+        st.session_state[f"reason_Late"] = late_reason
 
     # ---------------------------
     # Display Results
@@ -286,11 +303,16 @@ if st.button("Predict Outcome"):
     for stage_name in st.session_state.results:
         pred = st.session_state.results[stage_name]
         prob = st.session_state.probabilities[stage_name]
+        reason = st.session_state.get(f"reason_{stage_name}", "ML-based decision")
+        st.caption(f"Decision source: {reason}")
 
         if pred == pass_labels[stage_name]:
             st.success(f"{stage_name}: PASS ({prob*100:.2f}%)")
         else:
             st.error(f"{stage_name}: FAIL ({(1-prob)*100:.2f}% risk)")
+
+        reason = st.session_state.get(f"reason_{stage_name}", "ML-based decision")
+        st.caption(f"Decision source: {reason}")
 
     # ---------------------------
     # Progress Insight
@@ -313,7 +335,7 @@ if st.button("Predict Outcome"):
     st.subheader("🎯 Final Prediction")
 
     final_pred = st.session_state.results[latest]
-    final_prob = st.session_state.probabilities[latest]
+    final_reason = st.session_state.get(f"reason_{latest}", "ML-based decision")
 
     if final_pred == pass_labels[latest]:
         st.success(f"Likely PASS ({final_prob*100:.2f}%)")
@@ -324,6 +346,8 @@ if st.button("Predict Outcome"):
         st.write("- Increase study time")
         st.write("- Reduce absences")
         st.write("- Seek support")
+
+    st.caption(f"Decision source: {final_reason}")
 
 # ---------------------------
 # Visualization
