@@ -335,6 +335,7 @@ if st.button("Predict Outcome"):
     st.subheader("🎯 Final Prediction")
 
     final_pred = st.session_state.results[latest]
+    final_prob = st.session_state.probabilities[latest]
     final_reason = st.session_state.get(f"reason_{latest}", "ML-based decision")
 
     if final_pred == pass_labels[latest]:
