@@ -304,7 +304,6 @@ if st.button("Predict Outcome"):
         pred = st.session_state.results[stage_name]
         prob = st.session_state.probabilities[stage_name]
         reason = st.session_state.get(f"reason_{stage_name}", "ML-based decision")
-        st.caption(f"Decision source: {reason}")
 
         if pred == pass_labels[stage_name]:
             st.success(f"{stage_name}: PASS ({prob*100:.2f}%)")
