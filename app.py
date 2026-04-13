@@ -159,7 +159,7 @@ if stage != "Early (No Assessments)":
     elif stage == "Late (Most Assessments)":
         G2 = current_grade
 
-        # Pull G1 from mid stage automatically
+        # Pull G1 from mid-stage automatically
         G1 = calculate_weighted_grade(
             st.session_state.mid_data["scores"],
             st.session_state.mid_data["weights"]
@@ -168,10 +168,11 @@ if stage != "Early (No Assessments)":
     # ---------------------------
     # Pass Requirement Calculator
     # ---------------------------
+    total_weight = sum(weights)
     remaining_weight = 100 - total_weight
 
     if remaining_weight > 0:
-        required_score = (50 - (current_grade * (total_weight / 100))) / (remaining_weight / 100)
+        required_score = (50 - current_grade) / (remaining_weight / 100)
 
         st.info(f"📌 To PASS the module, you need an average of {round(required_score, 2)}% in the remaining assessments.")
 
@@ -179,14 +180,6 @@ if stage != "Early (No Assessments)":
             st.error("⚠️ It is mathematically impossible to pass based on current performance.")
         elif required_score < 0:
             st.success("🎉 You are already guaranteed to pass!")
-
-    # Assign grades to model inputs
-    if stage == "Mid (Some Assessments)":
-        G1 = current_grade
-
-    elif stage == "Late (Most Assessments)":
-        G1 = current_grade
-        G2 = current_grade  # simplified
 
 # ---------------------------
 # Prediction
@@ -240,9 +233,9 @@ if st.button("Predict Outcome"):
     # Progression Insight
     # ---------------------------
     if "Early Stage" in st.session_state.results and "Late Stage" in st.session_state.results:
-        if results["Early Stage"] == 0 and results["Late Stage"] == 1:
+        if st.session_state.results["Early Stage"] == 0 and st.session_state.results["Late Stage"] == 1:
             st.success("🎉 Improvement detected! You moved from risk to passing.")
-        elif results["Early Stage"] == 1 and results["Late Stage"] == 0:
+        elif st.session_state.results["Early Stage"] == 1 and st.session_state.results["Late Stage"] == 0:
             st.warning("⚠️ Performance dropped over time. Immediate action is recommended.")
 
     # ---------------------------
