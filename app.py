@@ -4,6 +4,11 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
+#Setting the page and title
+st.set_page_config(
+    page_title="Student Performance",
+    page_icon="🎓"
+)
 #-------------------------
 # Defined Functions
 #-------------------------
