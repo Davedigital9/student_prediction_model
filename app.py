@@ -272,7 +272,7 @@ if st.button("Predict Outcome"):
     #st.session_state.results["Early"] = early_final
     st.session_state.results["Early"] = early_pred #reversed to previous logic without the hybrid decision making
     st.session_state.probabilities["Early"] = early_prob[early_pass_label]
-    st.session_state[f"reason_Early"] = early_reason
+    #st.session_state[f"reason_Early"] = early_reason
 
     # ---------------- Mid Stage ----------------
     #Check for actual data instead of G1>0
