@@ -100,7 +100,6 @@ pass_labels = {
 # Model Header
 # ---------------------------
 st.title("🎓 Student Performance Predictor")
-st.write("Predict pass/fail risk across academic stages.")
 
 st.markdown("""
 ### 📘 About This Tool
