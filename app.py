@@ -371,3 +371,63 @@ if "results" in st.session_state and len(st.session_state.results) > 0:
         ax.set_xlabel("Stage")
         ax.set_title("Performance Trend")
         st.pyplot(fig)
+
+# ---------------------------
+# Support Recommendation System
+# ---------------------------
+#Added a support system ONLY if the student is predicted to FAIL
+if "results" in st.session_state and len(st.session_state.results) > 0:
+    latest = list(st.session_state.results.keys())[-1]
+    final_pred = st.session_state.results[latest]
+
+    # Check if final prediction is FAIL
+    if final_pred != pass_labels[latest]:
+        st.subheader("🆘 Get Support")
+        st.write("We’ve identified that you may be at risk of failing.")
+        st.write("Tell us what challenges you're facing so we can guide you to the right support services.")
+       
+        # User input
+        user_input = st.text_area("Describe your challenges:")
+        if user_input:
+
+            # Keyword mapping from the user's input to services
+            support_services = {
+                "time": ("Time Management Support", "timemanagement@university.edu"),
+                "stress": ("Wellbeing / Counselling Service", "wellbeing@university.edu"),
+                "anxiety": ("Wellbeing / Counselling Service", "wellbeing@university.edu"),
+                "mental": ("Mental Health Support", "mentalhealth@university.edu"),
+                "financial": ("Financial Support Team", "financehelp@university.edu"),
+                "money": ("Financial Support Team", "financehelp@university.edu"),
+                "family": ("Student Support Services", "studentsupport@university.edu"),
+                "motivation": ("Academic Skills Support", "academicskills@university.edu"),
+                "study": ("Academic Skills Support", "academicskills@university.edu"),
+                "understanding": ("Module Tutor Support", "moduletutor@university.edu"),
+                "lecture": ("Module Tutor Support", "moduletutor@university.edu"),
+                "attendance": ("Student Engagement Team", "engagement@university.edu"),
+                "absence": ("Student Engagement Team", "engagement@university.edu")
+            }
+
+            user_input_lower = user_input.lower()
+
+            matched_services = set()
+
+            #Keyword matching 
+            for keyword in support_services:
+                if keyword in user_input_lower:
+                    matched_services.add(support_services[keyword])
+
+            #Display support suggestions if there is a keyword match
+            if matched_services:
+                st.success("We recommend the following support services:")
+
+                for service_name, email in matched_services:
+                    st.write(f"**{service_name}**")
+                    st.write(f"📧 {email}")
+                    st.write("---")
+
+            else:
+                #Direct contact to programme leader if no keyword matched
+                st.warning("We couldn't identify a specific issue, but support is available.")
+
+                st.write("Please contact your Programme Leader for guidance:")
+                st.write("📧 programmeleader@university.edu")
