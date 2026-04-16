@@ -220,30 +220,44 @@ if stage != "Early (No Assessments)":
         scores.append(score)
         weights.append(weight)
 
-    # Combine old + new data (assessment data)
-    combined_scores = existing_scores + scores
-    combined_weights = existing_weights + weights
-
-    total_weight = sum(combined_weights)
+    #adding a button to solve errors and handle proper user input
+    if st.button("Add Assessment"):        
+        # Combine old + new data (assessment data)
+        combined_scores = existing_scores + scores
+        combined_weights = existing_weights + weights
     
-    # Warn if weights ≠ 100
-    #if abs(sum(weights) - 100) > 0.01:
-      #  st.warning(f"⚠️ Total weight is {sum(weights)}%. It should sum to 100%.")
-       # st.caption(f"Current contribution to final grade: {module_contribution(scores, weights):.2f}%")
-    #STRICT weight validation ---
-    if total_weight > 100:
-        st.error(f"❌ Total weight exceeds 100% (Current: {total_weight}%)")
-        st.stop()
+        total_weight = sum(combined_weights)
+        
+        # Warn if weights ≠ 100
+        #if abs(sum(weights) - 100) > 0.01:
+          #  st.warning(f"⚠️ Total weight is {sum(weights)}%. It should sum to 100%.")
+           # st.caption(f"Current contribution to final grade: {module_contribution(scores, weights):.2f}%")
+        #STRICT weight validation ---
+        if total_weight > 100:
+            st.error(f"❌ Total weight exceeds 100% (Current: {total_weight}%)")
+            st.stop()
+    
+        elif total_weight < 100:
+            st.warning(f"⚠️ Total weight is {total_weight}%. It should sum to 100%.")
+    
+        # Save state of combined data
+        st.session_state.data_store[current_key] = {
+            "scores": combined_scores, 
+            "weights": combined_weights
+        }
+        st.success("✅ Assessments saved successfully!")
 
-    elif total_weight < 100:
-        st.warning(f"⚠️ Total weight is {total_weight}%. It should sum to 100%.")
+    #use stored assessment data for display
+    saved_data = st.session_state.data_store[current_key]
 
-    # Save state of combined data
-    st.session_state.data_store[current_key] = {
-        "scores": combined_scores, 
-        "weights": combined_weights
-    }
-
+    current_grade = calculate_weighted_grade(
+        saved_data["scores"],
+        saved_data["weights"]
+    )
+    
+    st.success(f"Current Weighted Grade: {current_grade:.2f}%")  
+    #use stored assessment data for display
+    
     # Compute weighted grade
     current_grade = calculate_weighted_grade(combined_scores, combined_weights) #changed to reflect combined scores and weight
     st.success(f"Current Weighted Grade: {current_grade:.2f}%")
