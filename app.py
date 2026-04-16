@@ -68,6 +68,13 @@ def calculate_required_score(scores, weights):
 
 def get_stage_grade(stage_data):
     return calculate_weighted_grade(stage_data["scores"], stage_data["weights"])
+
+#Display saved assessments in a clean format
+def display_saved_assessments(stage_name, data):
+    if len(data["scores"]) > 0:
+        st.markdown(f"### 📌 Saved {stage_name} Assessments")
+        for i, (s, w) in enumerate(zip(data["scores"], data["weights"])):
+            st.write(f"Assessment {i+1}: Score = {s}, Weight = {w}%")
 # ---------------------------
 # Session State Initialization
 # ---------------------------
@@ -171,8 +178,15 @@ G2 = 0.0
 if stage != "Early (No Assessments)":
     st.subheader("📊 Assessments")
 
+    #Show previously saved assessment data
+    if current_key == "late":
+        display_saved_assessments("Mid", st.session_state.data_store["mid"])
+
+    if current_key == "mid":
+        display_saved_assessments("Mid", current_data)
+        
     num_assessments = st.number_input(
-        "Number of assessments",
+        "Number of assessments to add",
         1, 11,
         value=len(current_data["scores"]) or 1
     )
@@ -180,37 +194,58 @@ if stage != "Early (No Assessments)":
     scores = []
     weights = []
 
+    #view existing scores
+    existing_scores = current_data["scores"]
+    existing_weights = current_data["weights"]
+
+    # calculate existing total weight
+    existing_total_weight = sum(existing_weights)
+    
     for i in range(int(num_assessments)):
 
         score = st.number_input(
-            f"Score {i+1}",
+            f"New Score {i+1}",
             0.0, 100.0,
-            value=current_data["scores"][i] if i < len(current_data["scores"]) else 0.0,
-            key=f"{stage}_score_{i}"
+            #value=current_data["scores"][i] if i < len(current_data["scores"]) else 0.0,
+            key=f"{stage}_new_score_{i}"
         )
 
         weight = st.number_input(
             f"Weight {i+1} (%)",
             0.0, 100.0,
-            value=current_data["weights"][i] if i < len(current_data["weights"]) else 0.0,
-            key=f"{stage}_weight_{i}"
+            #value=current_data["weights"][i] if i < len(current_data["weights"]) else 0.0,
+            key=f"{stage}_new_weight_{i}"
         )
 
         scores.append(score)
         weights.append(weight)
 
+    # Combine old + new data (assessment data)
+    combined_scores = existing_scores + scores
+    combined_weights = existing_weights + weights
+
+    total_weight = sum(combined_weights)
+    
     # Warn if weights ≠ 100
-    if abs(sum(weights) - 100) > 0.01:
-        st.warning(f"⚠️ Total weight is {sum(weights)}%. It should sum to 100%.")
-        st.caption(f"Current contribution to final grade: {module_contribution(scores, weights):.2f}%")
-    # Save state
+    #if abs(sum(weights) - 100) > 0.01:
+      #  st.warning(f"⚠️ Total weight is {sum(weights)}%. It should sum to 100%.")
+       # st.caption(f"Current contribution to final grade: {module_contribution(scores, weights):.2f}%")
+    #STRICT weight validation ---
+    if total_weight > 100:
+        st.error(f"❌ Total weight exceeds 100% (Current: {total_weight}%)")
+        st.stop()
+
+    elif total_weight < 100:
+        st.warning(f"⚠️ Total weight is {total_weight}%. It should sum to 100%.")
+
+    # Save state of combined data
     st.session_state.data_store[current_key] = {
-        "scores": scores,
-        "weights": weights
+        "scores": combined_scores, 
+        "weights": combined_weights
     }
 
     # Compute weighted grade
-    current_grade = calculate_weighted_grade(scores, weights)
+    current_grade = calculate_weighted_grade(combined_scores, combined_weights) #changed to reflect combined scores and weight
     st.success(f"Current Weighted Grade: {current_grade:.2f}%")
 
     #Implementing a hybrid decision logic to stop conflicting prediction results
