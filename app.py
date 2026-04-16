@@ -339,6 +339,11 @@ if st.button("Predict Outcome"):
     # Display Results
     # ---------------------------
     st.subheader("📊 Results")
+    #Show all saved assessment data for transparency ---
+    st.markdown("## 📂 Your Saved Assessments")
+    
+    display_saved_assessments("Mid", st.session_state.data_store["mid"])
+    display_saved_assessments("Late", st.session_state.data_store["late"])
 
     for stage_name in st.session_state.results:
         pred = st.session_state.results[stage_name]
