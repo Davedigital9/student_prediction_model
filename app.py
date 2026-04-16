@@ -259,7 +259,7 @@ if stage != "Early (No Assessments)":
     #use stored assessment data for display
     
     # Compute weighted grade
-    current_grade = calculate_weighted_grade(combined_scores, combined_weights) #changed to reflect combined scores and weight
+    #current_grade = calculate_weighted_grade(combined_scores, combined_weights) #changed to reflect combined scores and weight
     st.success(f"Current Weighted Grade: {current_grade:.2f}%")
 
     #Implementing a hybrid decision logic to stop conflicting prediction results
