@@ -188,7 +188,7 @@ if stage != "Early (No Assessments)":
     num_assessments = st.number_input(
         "Number of assessments to add",
         1, 11,
-        value=len(current_data["scores"]) or 1
+        value=1 #Changed to avoid issues with continuous change of assessments
     )
 
     scores = []
