@@ -45,7 +45,7 @@ def calculate_weighted_grade(scores, weights):
 
 #this is for the pass requirement of the module
 def module_contribution(scores, weights):
-    return sum(s * (w/100) for s, w in zip(scores, weights))
+    return sum(s * (w / 100) for s, w in zip(scores, weights))
 
 #Implementing a hybrid decision logic to stop conflicting prediction results
 def rule_based_override(weighted_grade, ml_pred, pass_label):
@@ -62,6 +62,38 @@ def display_saved_assessments(stage_name, data):
         st.markdown(f"### 📌 Saved {stage_name} Assessments")
         for i, (s, w) in enumerate(zip(data["scores"], data["weights"])):
             st.write(f"Assessment {i+1}: Score = {s:.2f}, Weight = {w:.2f}%")
+
+def compute_module_total():
+    return (
+        sum(st.session_state.data_store["early"]["weights"])
+        + sum(st.session_state.data_store["mid"]["weights"])
+        + sum(st.session_state.data_store["late"]["weights"])
+    )
+
+def normalize_all_weights():
+    # Flatten all weights and normalize to sum to 100
+    all_weights = (
+        st.session_state.data_store["early"]["weights"]
+        + st.session_state.data_store["mid"]["weights"]
+        + st.session_state.data_store["late"]["weights"]
+    )
+    all_scores = (
+        st.session_state.data_store["early"]["scores"]
+        + st.session_state.data_store["mid"]["scores"]
+        + st.session_state.data_store["late"]["scores"]
+    )
+    total = sum(all_weights)
+    if total == 0:
+        return False
+    normalized = [w / total * 100 for w in all_weights]
+    # Re-split normalized weights back into stages based on original lengths
+    idx = 0
+    for stage in ["early", "mid", "late"]:
+        n = len(st.session_state.data_store[stage]["weights"])
+        st.session_state.data_store[stage]["weights"] = normalized[idx: idx + n]
+        idx += n
+    return True
+    
 # ---------------------------
 # Session State Initialization
 # ---------------------------
@@ -162,6 +194,15 @@ G1 = 0.0
 G2 = 0.0
 current_grade = 0.0 #stage-specific weighted grade
 
+# Show module-level totals and per-stage totals
+st.markdown("### 🧾 Module weight summary")
+module_total = compute_module_total()
+st.write(f"**Module weight used:** {module_total:.2f}%")
+st.write(f"**Remaining module weight:** {max(0.0, 100 - module_total):.2f}%")
+st.write(f"**Early stage total:** {sum(st.session_state.data_store['early']['weights']):.2f}%")
+st.write(f"**Mid stage total:** {sum(st.session_state.data_store['mid']['weights']):.2f}%")
+st.write(f"**Late stage total:** {sum(st.session_state.data_store['late']['weights']):.2f}%")
+
 if stage != "Early (No Assessments)":
     st.subheader("📊 Assessments")
 
@@ -181,60 +222,73 @@ if stage != "Early (No Assessments)":
     new_weights = []
 
     for i in range(int(num_assessments)):
-        score = st.number_input(
-            f"New Score {i+1}",
-            0.0, 100.0,
-            key=f"{stage}_new_score_{i}"
-        )
-        weight = st.number_input(
-            f"New Weight {i+1} (%)",
-            0.0, 100.0,
-            key=f"{stage}_new_weight_{i}"
-        )
+        score = st.number_input(f"New Score {i+1}", 0.0, 100.0, key=f"{stage}_new_score_{i}")
+        weight = st.number_input(f"New Weight {i+1} (%)", 0.0, 100.0, key=f"{stage}_new_weight_{i}")
+        
         new_scores.append(score)
         new_weights.append(weight)
 
-    #adding a button to solve errors and handle proper user input
-    if st.button("Add Assessment"):        
-        # Combine old + new data (assessment data)
-        combined_scores = current_data["scores"] + new_scores
-        combined_weights =  current_data["weights"] + new_weights
+    # Validate against module total across all stages before saving
+    if st.button("Add Assessment"):
+        module_total_before = compute_module_total()
+        new_total = module_total_before + sum(new_weights)
     
-        total_weight = sum(combined_weights)
-        
-        if total_weight > 100:
-            st.error(f"❌ Total weight exceeds 100% (Current: {total_weight}%). Please adjust your input.")
+        if new_total > 100:
+            st.error(f"❌ Cannot save: module total would exceed 100% (would be {new_total:.2f}%). Adjust weights.")
         else:
-            if total_weight < 100:
-                st.warning(f"⚠️ Total weight is {total_weight}%. It should sum to 100%.")
-            # Save state of combined data
-            st.session_state.data_store[current_key] = {
-                "scores": combined_scores, 
-                "weights": combined_weights
-            }
+            if new_total < 100:
+                st.warning(f"⚠️ Module total after saving will be {new_total:.2f}%. It should sum to 100% for a full module.")
+            # Combine and save for both new_total < 100 and new_total == 100
+            combined_scores = current_data["scores"] + new_scores
+            combined_weights = current_data["weights"] + new_weights
+            st.session_state.data_store[current_key] = {"scores": combined_scores, "weights": combined_weights}
             st.success("✅ Assessments saved successfully!")
+    
+            # update displayed module_total
+            module_total = compute_module_total()
+            st.write(f"Updated module weight used: {module_total:.2f}%")
+            
+    # Offer normalization if the user prefers stage-relative weights to be mapped to module percentages
+    if st.button("Normalize all saved weights to module 100%"):
+        success = normalize_all_weights()
+        if success:
+            st.success("All saved weights normalized to sum to 100% across the module.")
+            # refresh module totals display
+            module_total = compute_module_total()
+            st.write(f"Updated module weight used: {module_total:.2f}%")
+        else:
+            st.warning("Normalization failed: no weights to normalize.")
+
 
     #use stored assessment data for calculations
     saved_data = st.session_state.data_store[current_key]
-    current_grade = calculate_weighted_grade(
-        saved_data["scores"],
-        saved_data["weights"]
-    )
-    st.success(f"Current Weighted Grade: {current_grade:.2f}%") 
-    #Pass requirement (using saved data)
-    total_weight_saved = sum(saved_data["weights"])
-    remaining_weight = 100 - total_weight_saved
+    current_grade = calculate_weighted_grade(saved_data["scores"], saved_data["weights"])
+    st.success(f"Current Weighted Grade (stage): {current_grade:.2f}%")
 
-    if remaining_weight > 0:
-        contribution_so_far = module_contribution(saved_data["scores"], saved_data["weights"])
-        required_score = (50 - contribution_so_far) / (remaining_weight / 100)
+    # Pass requirement (use module-level saved weights across all stages)
+    all_scores = (
+        st.session_state.data_store["early"]["scores"]
+        + st.session_state.data_store["mid"]["scores"]
+        + st.session_state.data_store["late"]["scores"]
+    )
+    all_weights = (
+        st.session_state.data_store["early"]["weights"]
+        + st.session_state.data_store["mid"]["weights"]
+        + st.session_state.data_store["late"]["weights"]
+    )
+    module_total_now = sum(all_weights)
+    remaining_weight_module = 100 - module_total_now
+
+    if remaining_weight_module > 0:
+        contribution_so_far = module_contribution(all_scores, all_weights)
+        required_score = (50 - contribution_so_far) / (remaining_weight_module / 100)
         required_score = max(0, required_score)
-        st.info(f"Required average in remaining work: {required_score:.2f}%")
+        st.info(f"Required average in remaining work (module-level): {required_score:.2f}%")
 
         if required_score > 100:
-            st.error("Mathematically impossible to pass based on current performance.")
+            st.error("Mathematically impossible to pass based on current module contributions.")
         elif contribution_so_far >= 50:
-            st.success("You are working towards passing based on current contributions.")
+            st.success("You are already mathematically passing based on current module contributions.")
 
     # G1 / G2 from stored data
     def get_stage_grade(stage_key):
