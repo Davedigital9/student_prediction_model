@@ -47,34 +47,21 @@ def calculate_weighted_grade(scores, weights):
 def module_contribution(scores, weights):
     return sum(s * (w/100) for s, w in zip(scores, weights))
 
-#
-def calculate_required_score(scores, weights):
-    total_weight = sum(weights)
-
-    #Prevent calculations when weights exceed 100%
-    if total_weight > 100:
-        st.error("Total weight exceeds 100%. Please fix your inputs.")
-        return None
-
-    remaining_weight = 100 - total_weight
-
-    if remaining_weight <= 0:
-        return None
-
-    contribution_so_far = module_contribution(scores, weights)
-    required_score = (50 - contribution_so_far) / (remaining_weight / 100)
-
-    return required_score, remaining_weight
-
-def get_stage_grade(stage_data):
-    return calculate_weighted_grade(stage_data["scores"], stage_data["weights"])
-
+#Implementing a hybrid decision logic to stop conflicting prediction results
+def rule_based_override(weighted_grade, ml_pred, pass_label):
+    if weighted_grade >= 50:
+        return pass_label, "Rule-based PASS (grade ≥ 50%)"
+    elif weighted_grade < 40:
+        return 1 - pass_label, "Rule-based FAIL (grade < 40%)"
+    else:
+        return ml_pred, "ML-based decision (40–50% zone)"
+        
 #Display saved assessments in a clean format
 def display_saved_assessments(stage_name, data):
     if len(data["scores"]) > 0:
         st.markdown(f"### 📌 Saved {stage_name} Assessments")
         for i, (s, w) in enumerate(zip(data["scores"], data["weights"])):
-            st.write(f"Assessment {i+1}: Score = {s}, Weight = {w}%")
+            st.write(f"Assessment {i+1}: Score = {s:.2f}, Weight = {w:.2f}%")
 # ---------------------------
 # Session State Initialization
 # ---------------------------
@@ -91,6 +78,7 @@ if "results" not in st.session_state:
 if "probabilities" not in st.session_state:
     st.session_state.probabilities = {}
 
+#Load models
 model_early, model_mid, model_late = load_models()
 
 early_pass_label = get_pass_label(model_early)
@@ -138,13 +126,11 @@ stage = st.selectbox(
     "Select Academic Stage",
     ["Early (No Assessments)", "Mid (Some Assessments)", "Late (Most Assessments)"]
 )
-
 stage_key_map = {
     "Early (No Assessments)": "early",
     "Mid (Some Assessments)": "mid",
     "Late (Most Assessments)": "late"
 }
-
 current_key = stage_key_map[stage]
 current_data = st.session_state.data_store[current_key]
 
@@ -174,135 +160,92 @@ understanding = understanding_map[understanding_str]
 # ---------------------------
 G1 = 0.0
 G2 = 0.0
+current_grade = 0.0 #stage-specific weighted grade
 
 if stage != "Early (No Assessments)":
     st.subheader("📊 Assessments")
 
     #Show previously saved assessment data
-    if current_key == "late":
-        display_saved_assessments("Mid", st.session_state.data_store["mid"])
-
     if current_key == "mid":
-        display_saved_assessments("Mid", current_data)
-        
+        display_saved_assessments("Mid", st.session_state.data_store["mid"])
+    elif current_key == "late":
+        display_saved_assessments("Mid", st.session_state.data_store["mid"])
+        display_saved_assessments("Late", st.session_state.data_store["late"])
+
     num_assessments = st.number_input(
         "Number of assessments to add",
         1, 11,
         value=1 #Changed to avoid issues with continuous change of assessments
     )
+    new_scores = []
+    new_weights = []
 
-    scores = []
-    weights = []
-
-    #view existing scores
-    existing_scores = current_data["scores"]
-    existing_weights = current_data["weights"]
-
-    # calculate existing total weight
-    existing_total_weight = sum(existing_weights)
-    
     for i in range(int(num_assessments)):
-
         score = st.number_input(
             f"New Score {i+1}",
             0.0, 100.0,
-            #value=current_data["scores"][i] if i < len(current_data["scores"]) else 0.0,
             key=f"{stage}_new_score_{i}"
         )
-
         weight = st.number_input(
-            f"Weight {i+1} (%)",
+            f"New Weight {i+1} (%)",
             0.0, 100.0,
-            #value=current_data["weights"][i] if i < len(current_data["weights"]) else 0.0,
             key=f"{stage}_new_weight_{i}"
         )
-
-        scores.append(score)
-        weights.append(weight)
+        new_scores.append(score)
+        new_weights.append(weight)
 
     #adding a button to solve errors and handle proper user input
     if st.button("Add Assessment"):        
         # Combine old + new data (assessment data)
-        combined_scores = existing_scores + scores
-        combined_weights = existing_weights + weights
+        combined_scores = current_data["scores"] + new_scores
+        combined_weights =  current_data["weights"] + new_weights
     
         total_weight = sum(combined_weights)
         
-        # Warn if weights ≠ 100
-        #if abs(sum(weights) - 100) > 0.01:
-          #  st.warning(f"⚠️ Total weight is {sum(weights)}%. It should sum to 100%.")
-           # st.caption(f"Current contribution to final grade: {module_contribution(scores, weights):.2f}%")
-        #STRICT weight validation ---
         if total_weight > 100:
-            st.error(f"❌ Total weight exceeds 100% (Current: {total_weight}%)")
-            st.stop()
-    
-        elif total_weight < 100:
-            st.warning(f"⚠️ Total weight is {total_weight}%. It should sum to 100%.")
-    
-        # Save state of combined data
-        st.session_state.data_store[current_key] = {
-            "scores": combined_scores, 
-            "weights": combined_weights
-        }
-        st.success("✅ Assessments saved successfully!")
+            st.error(f"❌ Total weight exceeds 100% (Current: {total_weight}%). Please adjust your input.")
+        else:
+            if total_weight < 100:
+                st.warning(f"⚠️ Total weight is {total_weight}%. It should sum to 100%.")
+            # Save state of combined data
+            st.session_state.data_store[current_key] = {
+                "scores": combined_scores, 
+                "weights": combined_weights
+            }
+            st.success("✅ Assessments saved successfully!")
 
-    #use stored assessment data for display
+    #use stored assessment data for calculations
     saved_data = st.session_state.data_store[current_key]
-
     current_grade = calculate_weighted_grade(
         saved_data["scores"],
         saved_data["weights"]
     )
-    
-    st.success(f"Current Weighted Grade: {current_grade:.2f}%")  
-    #use stored assessment data for display
-    
-    # Compute weighted grade
-    #current_grade = calculate_weighted_grade(combined_scores, combined_weights) #changed to reflect combined scores and weight
-    st.success(f"Current Weighted Grade: {current_grade:.2f}%")
-
-    #Implementing a hybrid decision logic to stop conflicting prediction results
-    def rule_based_override(weighted_grade, ml_pred, pass_label):
-        if weighted_grade >= 50:
-            return pass_label, "Rule-based PASS (grade ≥ 50%)"
-        elif weighted_grade < 40:
-            return 1 - pass_label, "Rule-based FAIL (grade < 40%)"
-        else:
-            return ml_pred, "ML-based decision (40–50% zone)"
-
-
-    # ---------------------------
-    # PASS REQUIREMENT
-    # ---------------------------
-    total_weight = sum(weights)
-    remaining_weight = 100 - total_weight
+    st.success(f"Current Weighted Grade: {current_grade:.2f}%") 
+    #Pass requirement (using saved data)
+    total_weight_saved = sum(saved_data["weights"])
+    remaining_weight = 100 - total_weight_saved
 
     if remaining_weight > 0:
-        weighted_score_so_far = current_grade * (total_weight / 100)
-
-        required_score = (50 - weighted_score_so_far) / (remaining_weight / 100)
+        contribution_so_far = module_contribution(saved_data["scores"], saved_data["weights"])
+        required_score = (50 - contribution_so_far) / (remaining_weight / 100)
         required_score = max(0, required_score)
-
-        st.info(f"Required avg in remaining work: {required_score:.2f}%")
+        st.info(f"Required average in remaining work: {required_score:.2f}%")
 
         if required_score > 100:
-            st.error("Mathematically impossible to pass.")
-        elif module_contribution(scores, weights) >= 50:
-            st.success("You are already passing.")
+            st.error("Mathematically impossible to pass based on current performance.")
+        elif contribution_so_far >= 50:
+            st.success("You are working towards passing based on current contributions.")
 
-    # ---------------------------
-    # Assign G1 / G2 CONSISTENTLY
-    # ---------------------------
-    def get_stable_grade(data):
+    # G1 / G2 from stored data
+    def get_stage_grade(stage_key):
+        data = st.session_state.data_store[stage_key]
         return calculate_weighted_grade(data["scores"], data["weights"])
 
-    G1 = get_stable_grade(st.session_state.data_store["mid"])
-    G2 = get_stable_grade(st.session_state.data_store["late"])
-
+    G1 = get_stage_grade("mid")
+    G2 = get_stage_grade("late")
+            
     st.caption("ℹ️ G1 = Mid-stage performance (continuous assessment average)")
     st.caption("ℹ️ G2 = Late-stage performance (near-final grade estimate)")
-
 # ---------------------------
 # Prediction
 # ---------------------------
@@ -314,14 +257,11 @@ if st.button("Predict Outcome"):
     # ---------------- Early Stage ----------------
     early_features = np.array([[studytime, failures, absences, schoolsup, famsup, internet, understanding]])
     early_prob = model_early.predict_proba(early_features)[0]
-
     early_pred = np.argmax(early_prob)
     #applied the new hybrid decision system
-    #early_final, early_reason = current_grade, early_pred, early_pass_label
-    #st.session_state.results["Early"] = early_final
     st.session_state.results["Early"] = early_pred #reversed to previous logic without the hybrid decision making
     st.session_state.probabilities["Early"] = early_prob[early_pass_label]
-    #st.session_state[f"reason_Early"] = early_reason
+    st.session_state["reason_Early"] = "ML-based decision (no assessments yet)"
 
     # ---------------- Mid Stage ----------------
     #Check for actual data instead of G1>0
@@ -334,7 +274,7 @@ if st.button("Predict Outcome"):
         mid_final, mid_reason = rule_based_override(G1, mid_pred, mid_pass_label)
         st.session_state.results["Mid"] = mid_final
         st.session_state.probabilities["Mid"] = mid_prob[mid_pass_label]
-        st.session_state[f"reason_Mid"] = mid_reason
+        st.session_state["reason_Mid"] = mid_reason
 
     # ---------------- Late Stage ----------------
     #Check for actual data instead of G2>0
@@ -347,15 +287,14 @@ if st.button("Predict Outcome"):
         late_final, late_reason = rule_based_override(G2, late_pred, late_pass_label)
         st.session_state.results["Late"] = late_final
         st.session_state.probabilities["Late"] = late_prob[late_pass_label]
-        st.session_state[f"reason_Late"] = late_reason
+        st.session_state["reason_Late"] = late_reason
 
     # ---------------------------
     # Display Results
     # ---------------------------
     st.subheader("📊 Results")
     #Show all saved assessment data for transparency ---
-    st.markdown("## 📂 Your Saved Assessments")
-    
+    st.markdown("### 📂 Your Saved Assessments")
     display_saved_assessments("Mid", st.session_state.data_store["mid"])
     display_saved_assessments("Late", st.session_state.data_store["late"])
 
@@ -368,15 +307,12 @@ if st.button("Predict Outcome"):
             st.success(f"{stage_name}: PASS ({prob*100:.2f}%)")
         else:
             st.error(f"{stage_name}: FAIL ({(1-prob)*100:.2f}% risk)")
-
-        reason = st.session_state.get(f"reason_{stage_name}", "ML-based decision")
         st.caption(f"Decision source: {reason}")
 
     # ---------------------------
     # Progress Insight
     # ---------------------------
     if "Early" in st.session_state.results and "Late" in st.session_state.results:
-
         early_pred = st.session_state.results["Early"]
         late_pred = st.session_state.results["Late"]
 
@@ -400,20 +336,17 @@ if st.button("Predict Outcome"):
         st.success(f"Likely PASS ({final_prob*100:.2f}%)")
     else:
         st.error(f"Risk of FAIL ({(1-final_prob)*100:.2f}%)")
-
-        st.write("💡 Suggestions:")
-        st.write("- Increase study time")
+        st.write("💡 Suggestions:- You should consider:")
+        st.write("- Increasing study time")
         st.write("- Reduce absences")
-        st.write("- Seek support")
-
+        st.write("- Seek University support")
     st.caption(f"Decision source: {final_reason}")
 
 # ---------------------------
 # Visualization
 # ---------------------------
 if "results" in st.session_state and len(st.session_state.results) > 0:
-
-    st.subheader("📈 Trend Analysis")
+    st.subheader("## 📈 Trend Analysis")
 
     labels = list(st.session_state.results.keys())
     probs = [st.session_state.probabilities[l] for l in labels]
@@ -443,7 +376,6 @@ if "results" in st.session_state and len(st.session_state.results) > 0:
         # User input
         user_input = st.text_area("Describe your challenges:")
         if user_input:
-
             # Keyword mapping from the user's input to services
             support_services = {
                 "time": ("Time Management Support", "timemanagement@university.edu"),
@@ -460,11 +392,8 @@ if "results" in st.session_state and len(st.session_state.results) > 0:
                 "attendance": ("Student Engagement Team", "engagement@university.edu"),
                 "absence": ("Student Engagement Team", "engagement@university.edu")
             }
-
             user_input_lower = user_input.lower()
-
             matched_services = set()
-
             #Keyword matching 
             for keyword in support_services:
                 if keyword in user_input_lower:
@@ -473,7 +402,6 @@ if "results" in st.session_state and len(st.session_state.results) > 0:
             #Display support suggestions if there is a keyword match
             if matched_services:
                 st.success("We recommend the following support services:")
-
                 for service_name, email in matched_services:
                     st.write(f"**{service_name}**")
                     st.write(f"📧 {email}")
@@ -482,6 +410,5 @@ if "results" in st.session_state and len(st.session_state.results) > 0:
             else:
                 #Direct contact to programme leader if no keyword matched
                 st.warning("We couldn't identify a specific issue, but support is available.")
-
                 st.write("Please contact your Programme Leader for guidance:")
                 st.write("📧 programmeleader@university.edu")
