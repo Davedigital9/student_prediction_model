@@ -400,7 +400,7 @@ if st.button("Predict Outcome"):
 # Visualization
 # ---------------------------
 if "results" in st.session_state and len(st.session_state.results) > 0:
-    st.subheader("## 📈 Trend Analysis")
+    st.subheader("📈 Trend Analysis")
 
     labels = list(st.session_state.results.keys())
     probs = [st.session_state.probabilities[l] for l in labels]
