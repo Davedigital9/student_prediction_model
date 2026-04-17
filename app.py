@@ -249,6 +249,7 @@ if stage != "Early (No Assessments)":
             st.write(f"Updated module weight used: {module_total:.2f}%")
             
     # Offer normalization if the user prefers stage-relative weights to be mapped to module percentages
+    st.write("Use after all modules assessments have been inputted into Mid and Late staged")
     if st.button("Normalize all saved weights to module 100%"):
         success = normalize_all_weights()
         if success:
