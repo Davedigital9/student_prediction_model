@@ -391,10 +391,7 @@ if st.button("Predict Outcome"):
         st.success(f"Likely PASS ({final_prob*100:.2f}%)")
     else:
         st.error(f"Risk of FAIL ({(1-final_prob)*100:.2f}%)")
-        st.write("💡 Suggestions:- You should consider:")
-        st.write("- Increasing study time")
-        st.write("- Reduce absences")
-        st.write("- Seek University support")
+        st.write("Please fill in the SOS Get Support section for you to get some support")
     st.caption(f"Decision source: {final_reason}")
 
 # ---------------------------
