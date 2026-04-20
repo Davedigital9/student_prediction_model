@@ -251,7 +251,7 @@ if stage != "Early (No Assessments)":
             # update displayed module_total
             module_total = compute_module_total()
             st.write(f"Updated module weight used: {module_total:.2f}%")
-    '''       
+    """     
     # Offer normalization if the user prefers stage-relative weights to be mapped to module percentages
     st.write("Use this button after all module assessments have been inputted into Mid and Late stages:")
     if st.button("Normalize all saved weights to module 100%"):
@@ -263,7 +263,7 @@ if stage != "Early (No Assessments)":
             st.write(f"Updated module weight used: {module_total:.2f}%")
         else:
             st.warning("Normalization failed: no weights to normalize.")
-'''
+    """
 
     #use stored assessment data for calculations
     saved_data = st.session_state.data_store[current_key]
