@@ -25,10 +25,12 @@ def load_models():
 
 # SAFE PASS CLASS DETECTION
 def get_pass_label(model):
+    # Prefer explicit match
     for i, c in enumerate(model.classes_):
-        if str(c).lower() == "pass" or str(c) == "1":
+        if str(c).lower() in ["pass", "1"]:
             return i
-    raise ValueError("PASS class not found in model classes")
+    return int(np.argmax(model.classes_))
+
 
 # Weighted Grade Function
 #this will be for G1 and G2
@@ -203,6 +205,8 @@ st.write(f"**Early stage total:** {sum(st.session_state.data_store['early']['wei
 st.write(f"**Mid stage total:** {sum(st.session_state.data_store['mid']['weights']):.2f}%")
 st.write(f"**Late stage total:** {sum(st.session_state.data_store['late']['weights']):.2f}%")
 
+st.progress(module_total / 100) #This gives a clean visual indicator of how much of the 100% module weight has been used.
+
 if stage != "Early (No Assessments)":
     st.subheader("📊 Assessments")
 
@@ -247,7 +251,7 @@ if stage != "Early (No Assessments)":
             # update displayed module_total
             module_total = compute_module_total()
             st.write(f"Updated module weight used: {module_total:.2f}%")
-            
+    '''       
     # Offer normalization if the user prefers stage-relative weights to be mapped to module percentages
     st.write("Use this button after all module assessments have been inputted into Mid and Late stages:")
     if st.button("Normalize all saved weights to module 100%"):
@@ -259,7 +263,7 @@ if stage != "Early (No Assessments)":
             st.write(f"Updated module weight used: {module_total:.2f}%")
         else:
             st.warning("Normalization failed: no weights to normalize.")
-
+'''
 
     #use stored assessment data for calculations
     saved_data = st.session_state.data_store[current_key]
@@ -278,7 +282,8 @@ if stage != "Early (No Assessments)":
         + st.session_state.data_store["late"]["weights"]
     )
     module_total_now = sum(all_weights)
-    remaining_weight_module = 100 - module_total_now
+    #Added a check to prevent negative remaining weight
+    remaining_weight_module = max(0, 100 - module_total_now)
 
     if remaining_weight_module > 0:
         contribution_so_far = module_contribution(all_scores, all_weights)
@@ -296,6 +301,7 @@ if stage != "Early (No Assessments)":
         data = st.session_state.data_store[stage_key]
         return calculate_weighted_grade(data["scores"], data["weights"])
 
+    # If no assessments exist in a stage, G1/G2 default to 0.0
     G1 = get_stage_grade("mid")
     G2 = get_stage_grade("late")
             
